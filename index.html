@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- displays site properly based on user's device -->
+
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="./images/favicon-32x32.png"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <title>Frontend Mentor | Tip calculator app</title>
+  </head>
+  <body>
+    <img class="logo" src="./images/logo.svg" alt="" />
+    <div class="card" id="app">
+      <div class="card__tipcalculator">
+        <p>Bill</p>
+        <div
+          class="cardInput mb-4"
+          :class="{'invalid':bill===0 && billIsDirty}"
+        >
+          <p>Can't be zero</p>
+          <input
+            ref="bill"
+            v-model="bill"
+            type="tel"
+            @blur="billIsDirty=true"
+            placeholder="0"
+          />
+          <img src="./images/icon-dollar.svg" alt="" />
+        </div>
+        <p>Select Tip %</p>
+        <div class="card__percentages mb-4">
+          <button
+            v-for="p in percentageList"
+            class="butttonPercent"
+            :class="{'butttonPercent--selected' : selectedPercentage===p.display}"
+            @click="onPercentageClick(p)"
+          >
+            {{p.display}}
+          </button>
+
+          <button
+            class="butttonPercent butttonPercent--custom"
+            v-if="!showInput"
+            @click="onCustomPercetageClick"
+          >
+            Custom
+          </button>
+          <input
+            class="card__customPercentInput"
+            v-else
+            ref="percentage"
+            v-model="percentage"
+            type="tel"
+            placeholder="0"
+          />
+        </div>
+
+        <p>Number of People</p>
+        <div
+          class="cardInput"
+          :class="{'invalid':numOfPeople===0 && numOfPeopleIsDirty}"
+        >
+          <p>Can't be zero</p>
+          <input
+            ref="numOfPeople"
+            v-model="numOfPeople"
+            type="tel"
+            @blur="numOfPeopleIsDirty=true"
+            placeholder="0"
+          />
+          <img src="./images/icon-person.svg" alt="" />
+        </div>
+      </div>
+      <div class="card__tip">
+        <div>
+          <div class="amountDisplay">
+            <p>
+              Tip Amount <span><br />/ person</span>
+            </p>
+            <h1>{{ tip }}</h1>
+          </div>
+          <div class="amountDisplay">
+            <p>
+              Total <span><br />/ person</span>
+            </p>
+            <h1>{{ totalTip }}</h1>
+          </div>
+        </div>
+        <button @click="reset" class="card__resetBtn" :disabled="isDisabled">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <div class="attribution">
+      Challenge by
+      <a href="https://www.frontendmentor.io?ref=challenge" target="_blank"
+        >Frontend Mentor</a
+      >. Coded by <a href="https://github.com/roricrimson">RoriCrimson</a>.
+    </div>
+
+    <script>
+      const { createApp } = Vue;
+
+      createApp({
+        data() {
+          return {
+            billIsDirty: false,
+            numOfPeopleIsDirty: false,
+            _bill: 0,
+            _numOfPeople: 0,
+            _percentage: null,
+            showInput: false,
+            selectedPercentage: "",
+          };
+        },
+        methods: {
+          onPercentageClick(data) {
+            this.showInput = false;
+            this.selectedPercentage = data.display;
+            this.percentage = data.value;
+            this.billIsDirty = true;
+            this.numOfPeopleIsDirty = true;
+          },
+          onCustomPercetageClick() {
+            this.showInput = true;
+            this.selectedPercentage = "";
+            this.percentage = 0;
+            setTimeout(() => {
+              this.$refs.percentage?.focus();
+            }, 500);
+            this.billIsDirty = true;
+            this.numOfPeopleIsDirty = true;
+          },
+          reset() {
+            this.bill = 0;
+            this.numOfPeople = 0;
+            this.showInput = false;
+            this.selectedPercentage = "";
+            this.percentage = null;
+            this.billIsDirty = false;
+            this.numOfPeopleIsDirty = false;
+          },
+          onchange(event) {
+            this.bill = event.target.value;
+            event.target.value = this.bill;
+          },
+
+          clamp(number, min, max) {
+            return Math.max(min, Math.min(number, max));
+          },
+
+          getIntOnly(value) {
+            let result = 0;
+            try {
+              if (value === "") return result;
+              result = this.clamp(parseInt(value), 0, Number.MAX_SAFE_INTEGER);
+            } catch (error) {}
+
+            return result;
+          },
+
+          getFloatOnly(value) {
+            let result = 0;
+            try {
+              if (value === "") return result;
+
+              if (value.toString().endsWith(".")) {
+                result =
+                  this.clamp(parseFloat(value), 0, Number.MAX_SAFE_INTEGER) +
+                  ".";
+              } else {
+                result = this.clamp(
+                  parseFloat(value),
+                  0,
+                  Number.MAX_SAFE_INTEGER
+                );
+              }
+            } catch (error) {}
+            return result;
+          },
+        },
+        computed: {
+          percentageList() {
+            return [
+              { value: 5, display: "5%" },
+              { value: 10, display: "10%" },
+              { value: 15, display: "15%" },
+              { value: 25, display: "25%" },
+              { value: 50, display: "50%" },
+            ];
+          },
+          tip() {
+            if (this.percentage === null) {
+              return "0.00";
+            }
+            return (this.bill * (this.percentage / 100)).toFixed(2);
+          },
+          totalTip() {
+            if (this.percentage === null && this.numOfPeople === 0) {
+              return "0.00";
+            }
+            return (parseFloat(this.tip) * this.numOfPeople).toFixed(2);
+          },
+
+          isDisabled() {
+            if (this.tip === "0.00") {
+              return true;
+            }
+            return false;
+          },
+
+          bill: {
+            get() {
+              return this._bill;
+            },
+            set(value) {
+              this.$refs.bill.value = this._bill = this.getFloatOnly(value);
+            },
+          },
+
+          numOfPeople: {
+            get() {
+              return this._numOfPeople;
+            },
+            set(value) {
+              this.$refs.numOfPeople.value = this._numOfPeople =
+                this.getIntOnly(value);
+            },
+          },
+
+          percentage: {
+            get() {
+              return this._percentage;
+            },
+            set(value) {
+              this._percentage = this.getFloatOnly(value);
+              this.$refs.percentage &&
+                (this.$refs.percentage.value = this._percentage);
+            },
+          },
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
